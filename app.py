@@ -56,10 +56,29 @@ st.markdown("---")
 # ==================== 数据加载 ====================
 @st.cache_data
 def load_data():
-    """加载本地数据"""
+    """加载本地数据 - 支持多种编码格式"""
     try:
-        df = pd.read_csv("data/source.csv", encoding='utf-8-sig')
+        # 尝试多种编码格式（UTF-8、GBK、GB2312 等）
+        encodings = ['utf-8-sig', 'utf-8', 'gbk', 'gb2312', 'gb18030']
+        for encoding in encodings:
+            try:
+                df = pd.read_csv("data/source.csv", encoding=encoding)
+                st.info(f"✅ 使用 {encoding} 编码成功加载数据")
+                return df
+            except UnicodeDecodeError:
+                continue
+
+        # 如果所有编码都失败，尝试自动检测
+        import chardet
+        with open("data/source.csv", 'rb') as f:
+            raw_data = f.read(10000)
+            result = chardet.detect(raw_data)
+            detected_encoding = result['encoding']
+
+        df = pd.read_csv("data/source.csv", encoding=detected_encoding)
+        st.info(f"✅ 使用自动检测的 {detected_encoding} 编码成功加载数据")
         return df
+
     except FileNotFoundError:
         return None
     except Exception as e:
